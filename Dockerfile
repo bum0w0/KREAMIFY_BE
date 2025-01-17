@@ -10,7 +10,7 @@ RUN yum update -y && \
 WORKDIR /app
 
 # JAR 파일 복사 (수정된 경로)
-COPY ./KREAMIFY_BE/build/libs/KREAMIFY-0.0.1-SNAPSHOT.jar /app/KREAMIFY.jar
+COPY ./build/libs/KREAMIFY-0.0.1-SNAPSHOT.jar /app/KREAMIFY.jar
 
 # 컨테이너 시작 시 실행할 명령어
 CMD ["java", "-Duser.timezone=Asia/Seoul", "-jar", "-Dspring.profiles.active=dev", "KREAMIFY.jar"]
