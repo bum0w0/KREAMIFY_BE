@@ -1,16 +1,34 @@
-# Oracle OpenJDK 17.0.10 이미지 사용
-FROM oraclelinux:8
+# 빌드 스테이지
+FROM oraclelinux:8 as builder
+WORKDIR /build
 
-# Oracle OpenJDK 설치
-RUN yum update -y && \
-    yum install -y java-17-openjdk && \
-    yum clean all
+# Oracle OpenJDK 17 설치
+RUN yum install -y java-17-openjdk-devel
 
-# 작업 디렉토리 설정
+# Gradle 캐시를 위한 파일 복사
+COPY build.gradle settings.gradle /build/
+RUN gradle dependencies || true
+
+# 소스 코드 복사 및 빌드
+COPY . /build
+
+# 실행 스테이지
+FROM openjdk:17-jdk-slim
 WORKDIR /app
 
-# JAR 파일 복사 (수정된 경로)
-COPY ./build/libs/KREAMIFY-0.0.1-SNAPSHOT.jar /app/KREAMIFY.jar
+# 빌드된 JAR 파일 복사
+COPY --from=builder /build/build/libs/KREAMIFY-0.0.1-SNAPSHOT.jar /app/KREAMIFY.jar
 
-# 컨테이너 시작 시 실행할 명령어
-CMD ["java", "-Duser.timezone=Asia/Seoul", "-jar", "-Dspring.profiles.active=dev", "KREAMIFY.jar"]
+EXPOSE 8080
+
+# 컨테이너를 non-root 사용자로 실행
+USER nobody:nogroup
+
+# 애플리케이션 실행
+ENTRYPOINT [ \
+   "java", \
+   "-jar", \
+   "-Djava.security.egd=file:/dev/./urandom", \
+   "-Dsun.net.inetaddr.ttl=0", \
+   "KREAMIFY.jar" \
+]
