@@ -1,34 +1,19 @@
-# 빌드 스테이지
-FROM oraclelinux:8 as builder
-WORKDIR /build
+# Gradle 빌드 단계
+FROM openjdk:17-jdk-slim AS build
 
-# Oracle OpenJDK 17 설치
-RUN yum install -y java-17-openjdk-devel
-
-# Gradle 캐시를 위한 파일 복사
-COPY build.gradle settings.gradle /build/
-RUN gradle dependencies || true
-
-# 소스 코드 복사 및 빌드
-COPY . /build
-
-# 실행 스테이지
-FROM openjdk:17-jdk-slim
 WORKDIR /app
 
-# 빌드된 JAR 파일 복사
-COPY --from=builder /build/build/libs/KREAMIFY-0.0.1-SNAPSHOT.jar /app/KREAMIFY.jar
+# 소스 복사 및 빌드 실행
+COPY . .
+RUN ./gradlew clean build --no-daemon
 
-EXPOSE 8080
+# 실행 이미지 단계
+FROM openjdk:17-jdk-slim
 
-# 컨테이너를 non-root 사용자로 실행
-USER nobody:nogroup
+WORKDIR /app
 
-# 애플리케이션 실행
-ENTRYPOINT [ \
-   "java", \
-   "-jar", \
-   "-Djava.security.egd=file:/dev/./urandom", \
-   "-Dsun.net.inetaddr.ttl=0", \
-   "KREAMIFY.jar" \
-]
+# 빌드된 JAR 복사
+COPY --from=build /app/build/libs/KREAMIFY-0.0.1-SNAPSHOT.jar /app/KREAMIFY.jar
+
+# 실행 명령어
+CMD ["java", "-Duser.timezone=Asia/Seoul", "-jar", "-Dspring.profiles.active=dev", "/app/KREAMIFY.jar"]
